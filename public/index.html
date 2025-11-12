@@ -22,7 +22,7 @@
   </style>
 </head>
 <body class="bg-gray-900 text-white p-3">
-  <div class="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto">
+  <div class="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto pb-24">
     <h1 class="text-2xl font-bold text-center mb-4">Tournament POS</h1>
 
     <div class="flex justify-center mb-4">
@@ -71,7 +71,7 @@
         </div>
         <input type="hidden" id="paymentType" value="Cash">
       </div>
-      <button id="checkoutBtn" class="w-full bg-blue-500 hover:bg-blue-400 py-2 rounded flex items-center justify-center">Checkout</button>
+        <button id="checkoutBtn" class="w-full bg-blue-500 hover:bg-blue-400 py-3 rounded flex items-center justify-center text-base">Checkout</button>
     </div>
 
     <div id="confirmationContainer" class="hidden bg-gray-800 p-3 rounded text-center mb-4">
@@ -172,8 +172,8 @@
         <!-- No results hint for admin search -->
         <div id="adminNoResults" class="hidden text-center text-sm text-gray-400 mt-2">No items found</div>
 
-        <!-- Toast container -->
-        <div id="toastContainer" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50"></div>
+  <!-- Toast container (stack newest on top) -->
+  <div id="toastContainer" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col-reverse items-center space-y-2 space-y-reverse"></div>
 
         <!-- Modal (hidden by default) -->
         <div id="adminModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
@@ -443,7 +443,7 @@
                       data-name="${item.dataName}" 
                       data-price="${item.price}" 
                       data-color="${item.color}">
-                      <button class="add-btn bg-${item.color} rounded-full w-full py-2 text-white font-semibold">
+                      <button class="add-btn bg-${item.color} rounded-full w-full py-3 text-white font-semibold text-base">
                         Add +
                       </button>
                     </div>
@@ -621,6 +621,71 @@ function updateCartUI() {
     }
 
     // -----------------------------
+    // Sticky mobile checkout bar
+    // -----------------------------
+    (function createStickyCheckout() {
+  const bar = document.createElement('div');
+  bar.id = 'mobileCheckoutBar';
+  bar.className = 'fixed bottom-0 left-0 right-0 p-3 bg-gray-900 border-t md:hidden flex items-center justify-between space-x-3';
+  bar.style.zIndex = 60;
+
+      const totalEl = document.createElement('div');
+      totalEl.id = 'mobileCheckoutTotal';
+      totalEl.className = 'text-sm text-gray-300';
+      totalEl.textContent = 'Total: $0.00';
+
+      const btn = document.createElement('button');
+      btn.id = 'mobileCheckoutBtn';
+      btn.className = 'bg-blue-500 text-white px-4 py-3 rounded w-1/2 text-center font-semibold';
+      btn.textContent = 'Checkout';
+      btn.addEventListener('click', () => document.getElementById('checkoutBtn').click());
+
+      const viewBtn = document.createElement('button');
+      viewBtn.id = 'mobileViewBtn';
+      viewBtn.className = 'bg-gray-700 text-white px-4 py-3 rounded w-1/2 text-center mr-2';
+      viewBtn.textContent = 'View';
+      viewBtn.addEventListener('click', () => {
+        const cartEl = document.getElementById('cartContainer');
+        if (!cartEl) return;
+        cartEl.classList.remove('hidden');
+        cartEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+
+  bar.appendChild(totalEl);
+  bar.appendChild(viewBtn);
+  bar.appendChild(btn);
+      document.body.appendChild(bar);
+  // start hidden until cart has items
+  bar.classList.add('hidden');
+
+      // (removed tablet floating button — sticky bar will be used across sizes)
+
+      // Update total periodically by patching updateCartUI to call this when needed
+      const origUpdate = updateCartUI;
+      window.updateCartUI = function() {
+        origUpdate();
+        const totalText = document.getElementById('cartTotal')?.textContent || '';
+        document.getElementById('mobileCheckoutTotal').textContent = totalText.replace('Total: ', '');
+
+        const checkoutEl = document.getElementById('checkoutBtn');
+        let checkoutVisible = false;
+        if (checkoutEl) {
+          const r = checkoutEl.getBoundingClientRect();
+          checkoutVisible = (r.top < (window.innerHeight || document.documentElement.clientHeight)) && (r.bottom > 0);
+        }
+
+        const barEl = document.getElementById('mobileCheckoutBar');
+        const count = Object.values(cart).reduce((s, it) => s + (it.qty || 0), 0);
+        if (barEl) {
+          // Show mobile bar only when checkout button is not visible and there are items
+          if (count > 0 && !checkoutVisible) barEl.classList.remove('hidden'); else barEl.classList.add('hidden');
+        }
+
+        // no floating tablet button — sticky bar behavior only
+      }
+    })();
+
+    // -----------------------------
     // addRecentOrder
     // -----------------------------
     function addRecentOrder(order) {
@@ -723,11 +788,13 @@ function updateCartUI() {
         checkoutBtn.innerHTML = 'Checkout';
 
         console.error('Order submission failed:', err);
-        alert('Error submitting order. Please try again.');
+        showToast('Error submitting order. Please try again.', 'error');
         Object.assign(cart, tempCart); // Restore cart on failure
         updateCartUI();
       });
     });
+
+    // removed in-cart View Cart button wiring
 
 
     // -----------------------------
@@ -957,10 +1024,10 @@ function updateCartUI() {
             <td class="px-2 py-1">$${Number(i.price).toFixed(2)}</td>
             <td class="px-2 py-1">${i.orderIndex || 0}</td>
             <td class="px-2 py-1 space-x-1">
-              <button data-id="${i.id}" class="admin-edit bg-blue-600 px-2 py-1 text-xs rounded">Edit</button>
-              <button data-id="${i.id}" class="admin-delete bg-red-600 px-2 py-1 text-xs rounded">Delete</button>
-              <button data-id="${i.id}" class="admin-up bg-gray-600 px-2 py-1 text-xs rounded">↑</button>
-              <button data-id="${i.id}" class="admin-down bg-gray-600 px-2 py-1 text-xs rounded">↓</button>
+              <button data-id="${i.id}" class="admin-edit bg-blue-600 px-3 py-2 text-sm rounded">Edit</button>
+              <button data-id="${i.id}" class="admin-delete bg-red-600 px-3 py-2 text-sm rounded">Delete</button>
+              <button data-id="${i.id}" class="admin-up bg-gray-600 px-3 py-2 text-sm rounded">↑</button>
+              <button data-id="${i.id}" class="admin-down bg-gray-600 px-3 py-2 text-sm rounded">↓</button>
             </td>
           `;
           tbody.appendChild(tr);
@@ -981,10 +1048,10 @@ function updateCartUI() {
               </div>
             </div>
             <div class="mt-2 flex space-x-2">
-              <button data-id="${i.id}" class="admin-edit bg-blue-600 px-3 py-1 text-xs rounded">Edit</button>
-              <button data-id="${i.id}" class="admin-delete bg-red-600 px-3 py-1 text-xs rounded">Delete</button>
-              <button data-id="${i.id}" class="admin-up bg-gray-600 px-2 py-1 text-xs rounded">↑</button>
-              <button data-id="${i.id}" class="admin-down bg-gray-600 px-2 py-1 text-xs rounded">↓</button>
+              <button data-id="${i.id}" class="admin-edit bg-blue-600 px-3 py-2 text-sm rounded">Edit</button>
+              <button data-id="${i.id}" class="admin-delete bg-red-600 px-3 py-2 text-sm rounded">Delete</button>
+              <button data-id="${i.id}" class="admin-up bg-gray-600 px-3 py-2 text-sm rounded">↑</button>
+              <button data-id="${i.id}" class="admin-down bg-gray-600 px-3 py-2 text-sm rounded">↓</button>
             </div>
           `;
           mobileList.appendChild(card);
@@ -1027,7 +1094,7 @@ function updateCartUI() {
               }
             } catch (err) {
               console.error('Admin action failed:', err);
-              alert('Action failed: ' + (err.message || err));
+              showToast('Action failed: ' + (err.message || err), 'error');
             }
           });
 
@@ -1220,14 +1287,49 @@ function updateCartUI() {
       if (!container) return;
       const id = 'toast-' + Date.now();
       const color = type === 'error' ? 'bg-red-600' : (type === 'success' ? 'bg-green-600' : 'bg-gray-800');
+
       const el = document.createElement('div');
       el.id = id;
-      el.className = `${color} text-white px-4 py-2 rounded shadow mb-2 max-w-lg`;
-      el.textContent = message;
+      el.className = `${color} text-white px-4 py-2 rounded shadow max-w-lg w-full sm:w-auto`;
+      el.style.marginBottom = '8px';
+      el.style.boxSizing = 'border-box';
+      el.setAttribute('role', 'status');
+      el.setAttribute('aria-live', 'polite');
+
+      // content wrapper for potential HTML
+      const content = document.createElement('div');
+      content.textContent = message;
+      el.appendChild(content);
+
+      // initial state (hidden, slightly down)
+      el.style.transform = 'translateY(12px)';
+      el.style.opacity = '0';
+      el.style.transition = 'transform 280ms cubic-bezier(.2,.9,.2,1), opacity 280ms ease';
+
+      // append then animate in
       container.appendChild(el);
-      setTimeout(() => {
-        el.remove();
-      }, timeout);
+      // force layout then animate
+      requestAnimationFrame(() => {
+        el.style.transform = 'translateY(0)';
+        el.style.opacity = '1';
+      });
+
+      // auto-remove with slide-out animation
+      const removeToast = () => {
+        el.style.transform = 'translateY(12px)';
+        el.style.opacity = '0';
+        setTimeout(() => {
+          try { el.remove(); } catch (e) {}
+        }, 300);
+      };
+
+      const timeoutId = setTimeout(removeToast, timeout);
+
+      // allow click to dismiss early
+      el.addEventListener('click', () => {
+        clearTimeout(timeoutId);
+        removeToast();
+      });
     }
 
     function updateAdminNoResults() {
