@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <script src="https://cdn.tailwindcss.com"></script>
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Tournament POS</title>
+  <style type="text/css">
+      /* Base tab style 
+      .tab-btn {
+        @apply px-4 py-2 text-sm font-semibold transition-colors duration-200 w-32;
+      }
+
+      .tab-active {
+        @apply bg-blue-600 text-white;
+      }
+
+      .tab-inactive {
+        @apply bg-gray-600 text-gray-300;
+      }
+        */
+  </style>
+</head>
+<body class="bg-gray-900 text-white p-3">
+  <div class="max-w-md mx-auto">
+    <h1 class="text-2xl font-bold text-center mb-4">Tournament POS</h1>
+
+    <div class="flex justify-center mb-4">
+      <button id="rafflesTab" class="px-6 py-3 text-sm font-semibold w-32 rounded-l transition-colors duration-200 bg-gray-600 text-gray-300">Raffles</button>
+      <button id="concessionsTab" class="px-6 py-3 text-sm font-semibold w-32 transition-colors duration-200 bg-blue-600 text-white">Concessions</button>
+      <button id="historyTab" class="px-6 py-3 text-sm font-semibold w-32 rounded-r transition-colors duration-200 bg-gray-600 text-gray-300">History</button>
+    </div>
+
+    <div class="flex justify-end items-center mb-4">
+      <button id="startOverBtn" class="bg-red-600 hover:bg-red-500 text-white text-sm px-3 py-1 rounded-lg transition-colors">
+        Start Over
+      </button>
+    </div>
+
+    <!-- 🟦 Raffles Section -->
+<div id="rafflesSection" class="mb-4 hidden">
+  
+</div>
+
+<!-- 🟩 Concessions Section -->
+<div id="concessionsSection" class="mb-4">
+ 
+</div>
+
+
+
+    <div id="cartContainer" class="mb-4 bg-gray-800 rounded p-3">
+      <h2 class="text-xl font-semibold mb-2">Cart</h2>
+      <ul id="cartItems" class="mb-2"></ul>
+      <div id="cartTotal" class="text-right font-bold mb-2"></div>
+      
+      <div class="flex justify-between items-center mb-4">
+        <label class="text-white">Payment Type:</label>
+        <div id="paymentToggle" class="flex bg-gray-700 rounded-lg p-0.5">
+          <button id="cashOption" 
+                  data-value="Cash" 
+                  class="payment-option px-3 py-1 text-sm rounded-lg transition-colors duration-200 w-1/2 bg-blue-600 text-white font-semibold">
+            Cash
+          </button>
+          <button id="venmoOption" 
+                  data-value="Venmo" 
+                  class="payment-option px-3 py-1 text-sm rounded-lg transition-colors duration-200 w-1/2 text-gray-300">
+            Venmo
+          </button>
+        </div>
+        <input type="hidden" id="paymentType" value="Cash">
+      </div>
+      <button id="checkoutBtn" class="w-full bg-blue-500 hover:bg-blue-400 py-2 rounded flex items-center justify-center">Checkout</button>
+    </div>
+
+    <div id="confirmationContainer" class="hidden bg-gray-800 p-3 rounded text-center mb-4">
+      <p class="text-lg font-semibold mb-2">✅ Order Submitted!</p>
+      <div id="lastOrderSummary" class="text-sm text-gray-300 mb-2"></div>
+      <ul id="submittedItems" class="mb-2"></ul>
+      <div id="submittedTotal" class="text-right font-bold mb-2"></div>
+      <button id="newOrderBtn" class="bg-green-600 px-4 py-2 rounded">New Order</button>
+    </div>
+
+    <div id="qrContainer" class="hidden mb-4 bg-gray-800 rounded p-3 text-center">
+      <h2 class="text-lg font-semibold mb-2">Scan to Pay with Venmo</h2>
+      <img id="qrCodeImage" class="mx-auto mb-2" alt="Venmo QR" />
+      <p class="text-sm text-gray-300">Use Venmo app to complete your payment</p>
+    </div>
+
+    <div id="recentOrdersContainer" class="mb-4 bg-gray-800 rounded p-3 hidden">
+      <h2 class="text-lg font-semibold mb-2">Recent Orders</h2>
+      <ul id="recentOrdersList" class="text-sm text-gray-300"></ul>
+    </div>
+
+    <div id="historySection" class="mb-4 hidden">
+      <h2 class="text-xl font-semibold mb-2">Order History</h2>
+      
+      <!-- Summary -->
+      <div class="mb-2 p-2 bg-gray-700 rounded flex justify-between">
+        <span id="historyTotalOrders">Orders: 0</span>
+        <span id="historyTotalAmount">Total: $0.00</span>
+      </div>
+      
+      <!-- Scrollable list -->
+      <ul id="historyList" class="mb-2 max-h-[300px] overflow-y-auto text-sm text-gray-300">
+        <!-- Individual orders appended here -->
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const VENMO_USERNAME = "gonk-hockey";
+    const cart = {};
+    const recentOrders = [];
+    let historyOrders = [];
+
+    // -----------------------------
+    // Tab memory
+    // -----------------------------
+    function setActiveTab(tab) {
+      localStorage.setItem('activeTab', tab);
+
+      document.getElementById('rafflesSection').classList.toggle('hidden', tab !== 'raffles');
+      document.getElementById('concessionsSection').classList.toggle('hidden', tab !== 'concessions');
+      document.getElementById('historySection').classList.toggle('hidden', tab !== 'history');
+
+      // Tab button styles
+      const tabs = ['rafflesTab','concessionsTab','historyTab'];
+      tabs.forEach(id => {
+        const btn = document.getElementById(id);
+        if (id.startsWith(tab)) {
+          btn.classList.add('bg-blue-600','text-white');
+          btn.classList.remove('bg-gray-600','text-gray-300');
+        } else {
+          btn.classList.remove('bg-blue-600','text-white');
+          btn.classList.add('bg-gray-600','text-gray-300');
+        }
+      });
+
+      if (tab === 'history') {
+        document.getElementById('recentOrdersContainer').classList.add('hidden');
+        document.getElementById('confirmationContainer').classList.add('hidden');
+        document.getElementById('qrContainer').classList.add('hidden');
+      }
+    }
+
+    document.getElementById('rafflesTab').addEventListener('click', () => setActiveTab('raffles'));
+    document.getElementById('concessionsTab').addEventListener('click', () => setActiveTab('concessions'));
+    document.getElementById('historyTab').addEventListener('click', () => {
+      setActiveTab('history');
+      if (historyOrders.length === 0) loadHistory();
+    });
+
+    // Initialize
+    setActiveTab(localStorage.getItem('activeTab') || 'concessions');
+
+    // -----------------------------
+    // Payment Toggle Control
+    // -----------------------------
+    const paymentOptions = document.querySelectorAll('.payment-option');
+    const paymentTypeInput = document.getElementById('paymentType');
+    
+    function selectPaymentOption(selectedValue) {
+      paymentTypeInput.value = selectedValue;
+
+      paymentOptions.forEach(button => {
+        if (button.dataset.value === selectedValue) {
+          button.classList.add('bg-blue-600', 'text-white', 'font-semibold');
+          button.classList.remove('text-gray-300');
+        } else {
+          button.classList.remove('bg-blue-600', 'text-white', 'font-semibold');
+          button.classList.add('text-gray-300');
+        }
+      });
+    }
+
+    paymentOptions.forEach(button => {
+      button.addEventListener('click', () => {
+        selectPaymentOption(button.dataset.value);
+      });
+    });
+    
+    selectPaymentOption(paymentTypeInput.value);
+
+/********************************************************
+     * 🗂️ Data-driven menu configuration
+     ********************************************************/
+    const items = [
+      // --- RAFFLES ---
+      { tab: "raffles", category: "Raffles 🎟️", name: "Single Ticket", dataName: "single_ticket", price: 1, color: "gray-600", order: 1 },
+      { tab: "raffles", category: "Raffles 🎟️", name: "6 Pack Ticket", dataName: "6pack_ticket", price: 5, color: "gray-600", order: 2 },
+      { tab: "raffles", category: "Raffles 🎟️", name: "14 Pack Ticket", dataName: "14pack_ticket", price: 10, color: "gray-600", order: 3 },
+      { tab: "raffles", category: "Raffles 🎟️", name: "30 Pack Ticket", dataName: "30pack_ticket", price: 20, color: "gray-600", order: 4 },
+
+      // --- CONCESSIONS ---
+      // Food
+      { tab: "concessions", category: "Snacks", name: "Pizza Slice 🍕", dataName: "pizza", price: 3, color: "gray-600", order: 1 },
+      { tab: "concessions", category: "Snacks", name: "Donuts 🍩", dataName: "donuts", price: 2, color: "gray-600", order: 2 },
+      { tab: "concessions", category: "Snacks", name: "Muffins 🧁", dataName: "muffins", price: 3, color: "gray-600", order: 3 },
+      { tab: "concessions", category: "Snacks", name: "Chips 🍟", dataName: "chips", price: 2, color: "gray-600", order: 4 },
+
+      // Candy
+      { tab: "concessions", category: "Candy", name: "Candy Bar 🍫", dataName: "candy_bar", price: 3, color: "gray-600", order: 1 },
+      { tab: "concessions", category: "Candy", name: "Nerds", dataName: "nerds", price: 2, color: "gray-600", order: 2 },
+      { tab: "concessions", category: "Candy", name: "Ring Pop 💍", dataName: "ring_pop", price: 2, color: "gray-600", order: 3 },
+      { tab: "concessions", category: "Candy", name: "Sour Patch Kids 🍋", dataName: "sour_patch", price: 2, color: "gray-600", order: 4 },
+      { tab: "concessions", category: "Candy", name: "Skittles/Starburst 🌟", dataName: "skittles_starburst", price: 2, color: "gray-600", order: 5 },
+      { tab: "concessions", category: "Candy", name: "Air Head Extremes 🌈", dataName: "air_heads", price: 2, color: "gray-600", order: 6 },
+      { tab: "concessions", category: "Candy", name: "Other", dataName: "candy_other", price: 2, color: "gray-600", order: 7 },
+
+      // Drinks
+      { tab: "concessions", category: "Drinks 🥤", name: "Gatorade", dataName: "gatorade", price: 3, color: "gray-600", order: 1 },
+      { tab: "concessions", category: "Drinks 🥤", name: "Water 💧", dataName: "water", price: 2, color: "gray-600", order: 2 },
+      { tab: "concessions", category: "Drinks 🥤", name: "Coffee ☕", dataName: "coffee", price: 3, color: "gray-600", order: 3 },
+      { tab: "concessions", category: "Drinks 🥤", name: "Other Drink", dataName: "drink_other", price: 2, color: "gray-600", order: 4 },
+    ];
+
+    /********************************************************
+     * 🧩 Helper: Render category grids dynamically
+     ********************************************************/
+    function renderMenu() {
+      const raffleContainer = document.getElementById("rafflesSection");
+      const concessionContainer = document.getElementById("concessionsSection");
+
+      // Group items by tab and category
+      const grouped = {};
+      for (const item of items) {
+        if (!grouped[item.tab]) grouped[item.tab] = {};
+        if (!grouped[item.tab][item.category]) grouped[item.tab][item.category] = [];
+        grouped[item.tab][item.category].push(item);
+      }
+
+      // Sort categories and items
+      for (const tab in grouped) {
+        for (const cat in grouped[tab]) {
+          grouped[tab][cat].sort((a, b) => a.order - b.order);
+        }
+      }
+
+      // Render each tab section
+      const renderSection = (tabName, container) => {
+        let html = "";
+        const categories = Object.keys(grouped[tabName] || {});
+        for (const category of categories) {
+          html += `
+            <div class="mb-3">
+              <h3 class="text-lg font-semibold mb-1 text-lime-400">${category}</h3>
+              <div class="grid grid-cols-2 gap-2">
+                ${grouped[tabName][category].map(item => `
+                  <div class="bg-gray-800 rounded p-2 flex flex-col justify-between">
+                    <div class="flex justify-between items-center mb-1">
+                      <span class="font-medium">${item.name}</span>
+                      <span class="text-gray-300">$${item.price}</span>
+                    </div>
+                    <div class="quantity-control" 
+                      data-name="${item.dataName}" 
+                      data-price="${item.price}" 
+                      data-color="${item.color}">
+                      <button class="add-btn bg-${item.color} rounded-full w-full py-2 text-white font-semibold">
+                        Add +
+                      </button>
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          `;
+        }
+        container.innerHTML = html;
+      };
+
+      renderSection("raffles", raffleContainer);
+      renderSection("concessions", concessionContainer);
+    }
+
+    renderMenu();    
+
+    /********************************************************
+     * 🟦 Tab switching behavior
+     ********************************************************/
+    const tabs = {
+      raffles: document.getElementById("rafflesTab"),
+      concessions: document.getElementById("concessionsTab"),
+    };
+    const sections = {
+      raffles: document.getElementById("rafflesSection"),
+      concessions: document.getElementById("concessionsSection"),
+    };
+
+    Object.keys(tabs).forEach(tab => {
+      tabs[tab].addEventListener("click", () => {
+        Object.keys(sections).forEach(s => {
+          sections[s].classList.toggle("hidden", s !== tab);
+          tabs[s].classList.toggle("bg-blue-600", s === tab);
+          tabs[s].classList.toggle("bg-gray-600", s !== tab);
+          tabs[s].classList.toggle("text-white", s === tab);
+          tabs[s].classList.toggle("text-gray-300", s !== tab);
+        });
+      });
+    });
+
+// -----------------------------
+// Quantity controls
+// -----------------------------
+let justActivated = false;
+document.addEventListener('click', (e) => {
+  if (justActivated) { justActivated = false; return; }
+  document.querySelectorAll('.quantity-control.active').forEach(c => {
+    if (!c.contains(e.target)) showDisplayMode(c);
+  });
+});
+
+document.querySelectorAll('.quantity-control').forEach(control => {
+  const addBtn = control.querySelector('.add-btn');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      const name = control.dataset.name;
+      const price = parseFloat(control.dataset.price);
+      cart[name] = cart[name]
+        ? { ...cart[name], qty: cart[name].qty + 1 }
+        : { price, qty: 1 };
+      updateCartUI();
+      showActiveControl(control);
+      justActivated = true;
+    });
+  }
+});
+
+function showActiveControl(control) {
+  const name = control.dataset.name;
+  const qty = cart[name]?.qty || 0;
+  if (qty === 0) return;
+
+  // active always green
+  const activeColor = 'bg-green-600 hover:bg-green-500';
+
+  control.innerHTML = '';
+  control.className = `quantity-control active flex items-center justify-between ${activeColor} rounded-full px-1 py-1 transition-colors duration-200`;
+
+  const minusBtn = document.createElement('button');
+  minusBtn.textContent = '-';
+  minusBtn.className = 'text-white font-bold text-xl w-8 flex-shrink-0';
+  minusBtn.onclick = () => {
+    cart[name].qty--;
+    if (cart[name].qty <= 0) {
+      delete cart[name];
+      showDisplayMode(control);
+    } else {
+      qtySpan.textContent = cart[name].qty;
+    }
+    updateCartUI();
+  };
+
+  const qtySpan = document.createElement('span');
+  qtySpan.textContent = qty;
+  qtySpan.className = 'text-white px-4';
+
+  const plusBtn = document.createElement('button');
+  plusBtn.textContent = '+';
+  plusBtn.className = 'text-white font-bold text-xl w-8 flex-shrink-0';
+  plusBtn.onclick = () => {
+    cart[name].qty++;
+    qtySpan.textContent = cart[name].qty;
+    updateCartUI();
+  };
+
+  control.append(minusBtn, qtySpan, plusBtn);
+}
+
+function showDisplayMode(control) {
+  const name = control.dataset.name;
+  const currentQty = cart[name]?.qty || 0;
+
+  control.className = 'quantity-control ml-2 transition-colors duration-200';
+  control.innerHTML = '';
+
+  const btn = document.createElement('button');
+
+  if (currentQty > 0) {
+    // Green if any quantity exists
+    btn.textContent = currentQty;
+    btn.className = 'bg-green-600 hover:bg-green-500 rounded-full px-4 py-1 text-white font-bold w-full';
+  } else {
+    // Gray default state
+    btn.textContent = 'Add +';
+    btn.className = 'bg-gray-700 hover:bg-gray-600 rounded-full px-4 py-1 text-white w-full';
+  }
+
+  btn.onclick = () => {
+    if (currentQty === 0) {
+      // First time adding
+      cart[name] = { price: parseFloat(control.dataset.price), qty: 1 };
+      updateCartUI();
+      showActiveControl(control);
+      justActivated = true;
+    } else {
+      // Already has qty — just show active control, don't add
+      showActiveControl(control);
+      justActivated = true;
+    }
+  };
+
+  control.appendChild(btn);
+}
+
+// -----------------------------
+// Update Cart UI
+// -----------------------------
+function updateCartUI() {
+  const cartItems = document.getElementById('cartItems');
+  cartItems.innerHTML = '';
+  let total = 0;
+  for (const name in cart) {
+    if (cart.hasOwnProperty(name)) {
+      const item = cart[name];
+      const li = document.createElement('li');
+      li.textContent = `${name} x ${item.qty} ($${(item.price * item.qty).toFixed(2)})`;
+      cartItems.appendChild(li);
+      total += item.price * item.qty;
+    }
+  }
+  document.getElementById('cartTotal').textContent = `Total: $${total.toFixed(2)}`;
+
+  // Ensure buttons stay in sync
+  document.querySelectorAll('.quantity-control').forEach(control => {
+    const name = control.dataset.name;
+    if (!cart[name] && control.classList.contains('active')) {
+      showDisplayMode(control);
+    }
+  });
+}
+
+
+    // -----------------------------
+    // QR Code Generation Helper
+    // -----------------------------
+    function showVenmoQR(order) {
+      const venmoUrl = 'https://venmo.com/?txn=pay&recipients=' + VENMO_USERNAME 
+                        + '&amount=' + Number(order.totalAmount).toFixed(2)
+                        + '&note=Tournament_' + (order.orderId || Date.now()); 
+      const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?data=' 
+        + encodeURIComponent(venmoUrl) 
+        + '&size=200x200';
+      
+      document.getElementById('qrCodeImage').src = qrUrl;
+      document.getElementById('qrContainer').classList.remove('hidden');
+    }
+
+    // -----------------------------
+    // addRecentOrder
+    // -----------------------------
+    function addRecentOrder(order) {
+      recentOrders.unshift(order);
+      if (recentOrders.length > 10) recentOrders.pop();
+
+      var list = document.getElementById('recentOrdersList');
+      list.innerHTML = '';
+
+      recentOrders.forEach(function(o) {
+        var li = document.createElement('li');
+        li.className = 'flex justify-between items-center py-1 border-b border-gray-700 last:border-b-0'; 
+        
+        var id = o.orderId ? String(o.orderId).substring(0,6) : '------';
+        var totalNum = Number(o.totalAmount);
+        var totalStr = Number.isFinite(totalNum) ? totalNum.toFixed(2) : (o.totalAmount || '0.00');
+        var payment = o.paymentType || 'Unknown';
+        
+        var detailsSpan = document.createElement('span');
+        detailsSpan.textContent = '#' + id + ' - $' + totalStr + ' (' + payment + ')';
+        li.appendChild(detailsSpan);
+        
+        if (payment === 'Venmo') {
+          var qrButton = document.createElement('button');
+          qrButton.textContent = 'Show QR';
+          qrButton.className = 'bg-yellow-600 hover:bg-yellow-500 text-white text-xs px-2 py-1 rounded ml-2';
+          qrButton.onclick = () => showVenmoQR(o); 
+          li.appendChild(qrButton);
+        }
+
+        list.appendChild(li);
+      });
+
+      document.getElementById('recentOrdersContainer').classList.remove('hidden');
+    }
+
+    // -----------------------------
+    // Checkout + Firestore call
+    // -----------------------------
+    document.getElementById('checkoutBtn').addEventListener('click', () => {
+      const checkoutBtn = document.getElementById('checkoutBtn');
+      checkoutBtn.disabled = true;
+      checkoutBtn.innerHTML = 'Submitting... <span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></span>';
+
+      const paymentType = document.getElementById('paymentType').value;
+      const items = Object.entries(cart).map(([name, val]) => ({ name, qty: val.qty, price: val.price }));
+      const totalAmount = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+      const tempCart = { ...cart }; // Backup cart in case of failure
+
+      // Clear cart optimistically
+      for (const key in cart) delete cart[key];
+      updateCartUI();
+
+      checkoutBtn.disabled = true;
+    checkoutBtn.innerHTML = 'Processing...';
+
+    fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items, paymentType, totalAmount })
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Network response was not ok');
+        return res.json();
+      })
+      .then((res) => {
+        checkoutBtn.disabled = false;
+        checkoutBtn.innerHTML = 'Checkout';
+
+        // Hide item sections
+        document.getElementById('rafflesSection').classList.add('hidden');
+        document.getElementById('concessionsSection').classList.add('hidden');
+        document.getElementById('historySection').classList.add('hidden');
+
+        document.getElementById('cartContainer').classList.add('hidden');
+        document.getElementById('confirmationContainer').classList.remove('hidden');
+        document.getElementById('lastOrderSummary').textContent =
+          'Order #' + res.orderId.substring(0,6) + ' $' + res.totalAmount.toFixed(2) + ' ' + res.paymentType;
+
+        // Populate submitted items
+        const submittedItems = document.getElementById('submittedItems');
+        submittedItems.innerHTML = '';
+        res.items.forEach(item => {
+          const li = document.createElement('li');
+          li.textContent = item.name + ' x ' + item.qty + ' ($' + (item.price * item.qty).toFixed(2) + ')';
+          submittedItems.appendChild(li);
+        });
+        document.getElementById('submittedTotal').textContent = 'Total: $' + res.totalAmount.toFixed(2);
+
+        addRecentOrder(res);
+
+        if (res.paymentType === 'Venmo') {
+          showVenmoQR(res); 
+        } else {
+          document.getElementById('qrContainer').classList.add('hidden');
+        }
+      })
+      .catch((err) => {
+        checkoutBtn.disabled = false;
+        checkoutBtn.innerHTML = 'Checkout';
+
+        console.error('Order submission failed:', err);
+        alert('Error submitting order. Please try again.');
+        Object.assign(cart, tempCart); // Restore cart on failure
+        updateCartUI();
+      });
+    });
+
+
+    // -----------------------------
+    // Reset/Start Over Function
+    // -----------------------------
+    function startNewOrder() {
+      // Clear the cart data
+      for (const key in cart) delete cart[key];
+      
+      // Update the Cart UI
+      updateCartUI();
+      
+      // Ensure the Cart Container is visible
+      document.getElementById('cartContainer').classList.remove('hidden');
+
+      // Hide all post-checkout containers
+      document.getElementById('confirmationContainer').classList.add('hidden');
+      document.getElementById('qrContainer').classList.add('hidden');
+      
+      // Reset all quantity buttons to 'Add +'
+      document.querySelectorAll('.quantity-control').forEach(showDisplayMode);
+      
+      // Reset payment to Cash (default)
+      selectPaymentOption('Cash'); 
+
+      // Restore active tab sections
+      const activeTab = localStorage.getItem('activeTab') || 'concessions';
+      setActiveTab(activeTab);
+    }
+
+    // -----------------------------
+    // History Tab
+    // -----------------------------
+    // Fetch history from server
+    function loadHistory() {
+      fetch('/api/orders')
+        .then((res) => {
+          if (!res.ok) throw new Error('Network response was not ok');
+          return res.json();
+        })
+        .then((orders) => {
+          historyOrders = orders.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // newest first
+          renderHistory();
+        })
+        .catch((err) => {
+          console.error('Failed to load order history:', err);
+          alert('Error loading order history. Please try again.');
+        });
+    }
+
+
+    // Render all history orders
+    function renderHistory() {
+      const list = document.getElementById('historyList');
+      list.innerHTML = '';
+
+      historyOrders.forEach(order => {
+        const li = document.createElement('li');
+        li.className = 'flex justify-between items-center py-1 border-b border-gray-700 last:border-b-0';
+        li.textContent = `${new Date(order.timestamp).toLocaleString()} - $${order.totalAmount.toFixed(2)} (${order.paymentType}) #${order.orderId.substring(0,6)}`;
+        list.appendChild(li);
+      });
+
+      // Update summary
+      const totalAmount = historyOrders.reduce((sum,o) => sum + o.totalAmount,0);
+      document.getElementById('historyTotalOrders').textContent = `Orders: ${historyOrders.length}`;
+      document.getElementById('historyTotalAmount').textContent = `Total: $${totalAmount.toFixed(2)}`;
+    }
+
+    document.getElementById('newOrderBtn').addEventListener('click', startNewOrder);
+    document.getElementById('startOverBtn').addEventListener('click', startNewOrder);
+    
+    // Initialize all quantity controls on page load 
+    document.querySelectorAll('.quantity-control').forEach(showDisplayMode);
+
+  </script>
+</body>
+</html>
