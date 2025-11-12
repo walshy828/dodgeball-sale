@@ -1,0 +1,8 @@
+
+> tournament-pos@1.0.0 start
+> node server/index.js
+
+✅ Successfully connected to MariaDB
+🔧 Initializing database schema...
+✅ Database initialized successfully
+✅ Server running on port 8080

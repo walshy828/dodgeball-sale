@@ -22,13 +22,14 @@
   </style>
 </head>
 <body class="bg-gray-900 text-white p-3">
-  <div class="max-w-md mx-auto">
+  <div class="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto">
     <h1 class="text-2xl font-bold text-center mb-4">Tournament POS</h1>
 
     <div class="flex justify-center mb-4">
-      <button id="rafflesTab" class="px-6 py-3 text-sm font-semibold w-32 rounded-l transition-colors duration-200 bg-gray-600 text-gray-300">Raffles</button>
-      <button id="concessionsTab" class="px-6 py-3 text-sm font-semibold w-32 transition-colors duration-200 bg-blue-600 text-white">Concessions</button>
-      <button id="historyTab" class="px-6 py-3 text-sm font-semibold w-32 rounded-r transition-colors duration-200 bg-gray-600 text-gray-300">History</button>
+      <button id="rafflesTab" class="px-6 py-3 text-sm font-semibold w-28 rounded-l transition-colors duration-200 bg-gray-600 text-gray-300">Raffles</button>
+      <button id="concessionsTab" class="px-6 py-3 text-sm font-semibold w-28 transition-colors duration-200 bg-blue-600 text-white">Concessions</button>
+      <button id="historyTab" class="px-6 py-3 text-sm font-semibold w-28 transition-colors duration-200 bg-gray-600 text-gray-300">History</button>
+      <button id="adminTab" class="px-6 py-3 text-sm font-semibold w-28 transition-colors duration-200 bg-gray-600 text-gray-300">Admin</button>
     </div>
 
     <div class="flex justify-end items-center mb-4">
@@ -106,6 +107,94 @@
         <!-- Individual orders appended here -->
       </ul>
     </div>
+
+    <div id="adminSection" class="mb-4 hidden">
+      <h2 class="text-xl font-semibold mb-2">Admin</h2>
+
+      <div id="adminLogin" class="mb-3 p-3 bg-gray-800 rounded">
+        <label class="text-sm text-gray-300">Password</label>
+        <input id="adminPassword" type="password" class="w-full mt-1 p-2 rounded bg-gray-700 text-white" />
+        <div class="flex justify-end mt-2">
+          <button id="adminLoginBtn" class="bg-blue-600 px-3 py-1 rounded text-white text-sm">Login</button>
+        </div>
+        <div id="adminLoginMsg" class="text-xs text-red-400 mt-2 hidden"></div>
+      </div>
+
+      <div id="adminPanel" class="hidden bg-gray-800 p-3 rounded">
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="text-lg font-semibold">Items</h3>
+          <div class="flex items-center space-x-2">
+            <input id="adminSearch" placeholder="Search name, category, dataName..." class="p-2 rounded bg-gray-700 text-white text-sm" />
+            <button id="adminAddBtn" class="bg-green-600 px-3 py-1 rounded text-sm">Add Item</button>
+            <button id="adminLogoutBtn" class="bg-red-600 px-2 py-1 rounded text-sm">Logout</button>
+          </div>
+        </div>
+
+        <!-- Desktop table hidden on small screens; mobile list used instead to avoid horizontal scrolling -->
+        <div class="hidden md:block mb-3 overflow-x-auto">
+          <table class="min-w-full text-sm text-left">
+            <thead>
+              <tr class="text-xs text-gray-300">
+                <th class="px-2 py-1">ID</th>
+                <th class="px-2 py-1">Tab</th>
+                <th class="px-2 py-1">Category</th>
+                <th class="px-2 py-1">Name</th>
+                <th class="px-2 py-1">DataName</th>
+                <th class="px-2 py-1">Price</th>
+                <th class="px-2 py-1">Order</th>
+                <th class="px-2 py-1">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adminTableBody" class="text-gray-300"></tbody>
+          </table>
+        </div>
+
+        <!-- Mobile stacked list (visible on small screens) -->
+        <div id="adminListMobile" class="md:hidden space-y-2"></div>
+
+        <!-- Delete confirmation modal -->
+        <div id="deleteConfirmModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+          <div class="bg-gray-800 p-4 rounded w-11/12 max-w-sm">
+            <h4 class="text-lg font-semibold mb-2">Confirm Delete</h4>
+            <p id="deleteConfirmMsg" class="text-sm text-gray-300 mb-2">Are you sure?</p>
+            <p id="deleteConfirmName" class="text-sm text-gray-300 mb-2 font-semibold"></p>
+            <label class="flex items-center text-sm text-gray-300 mb-3">
+              <input id="deleteConfirmCheck" type="checkbox" class="mr-2" />
+              I understand this will permanently delete the item
+            </label>
+            <div class="flex justify-end space-x-2">
+              <button id="cancelDeleteBtn" class="px-3 py-1 rounded bg-gray-600">Cancel</button>
+              <button id="confirmDeleteBtn" class="px-3 py-1 rounded bg-red-600" disabled>Delete</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- No results hint for admin search -->
+        <div id="adminNoResults" class="hidden text-center text-sm text-gray-400 mt-2">No items found</div>
+
+        <!-- Toast container -->
+        <div id="toastContainer" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50"></div>
+
+        <!-- Modal (hidden by default) -->
+        <div id="adminModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+          <div class="bg-gray-800 p-4 rounded w-11/12 max-w-lg">
+            <h4 id="adminModalTitle" class="text-lg font-semibold mb-2">Edit Item</h4>
+            <div class="grid grid-cols-2 gap-2">
+              <input id="modal_tab" placeholder="tab (raffles|concessions)" class="p-2 rounded bg-gray-700 text-white" />
+              <input id="modal_category" placeholder="category" class="p-2 rounded bg-gray-700 text-white" />
+              <input id="modal_name" placeholder="name" class="p-2 rounded bg-gray-700 text-white" />
+              <input id="modal_dataName" placeholder="dataName" class="p-2 rounded bg-gray-700 text-white" />
+              <input id="modal_price" placeholder="price" class="p-2 rounded bg-gray-700 text-white" />
+              <input id="modal_orderIndex" placeholder="order" class="p-2 rounded bg-gray-700 text-white" />
+            </div>
+            <div class="flex justify-end mt-3 space-x-2">
+              <button id="adminModalCancel" class="px-3 py-1 rounded bg-gray-600">Cancel</button>
+              <button id="adminModalSave" class="px-3 py-1 rounded bg-green-600">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -120,12 +209,13 @@
     function setActiveTab(tab) {
       localStorage.setItem('activeTab', tab);
 
-      document.getElementById('rafflesSection').classList.toggle('hidden', tab !== 'raffles');
-      document.getElementById('concessionsSection').classList.toggle('hidden', tab !== 'concessions');
-      document.getElementById('historySection').classList.toggle('hidden', tab !== 'history');
+  document.getElementById('rafflesSection').classList.toggle('hidden', tab !== 'raffles');
+  document.getElementById('concessionsSection').classList.toggle('hidden', tab !== 'concessions');
+  document.getElementById('historySection').classList.toggle('hidden', tab !== 'history');
+  document.getElementById('adminSection').classList.toggle('hidden', tab !== 'admin');
 
       // Tab button styles
-      const tabs = ['rafflesTab','concessionsTab','historyTab'];
+      const tabs = ['rafflesTab','concessionsTab','historyTab','adminTab'];
       tabs.forEach(id => {
         const btn = document.getElementById(id);
         if (id.startsWith(tab)) {
@@ -137,12 +227,26 @@
         }
       });
 
-      if (tab === 'history') {
+      if (tab === 'history' || tab === 'admin') {
         document.getElementById('recentOrdersContainer').classList.add('hidden');
         document.getElementById('confirmationContainer').classList.add('hidden');
         document.getElementById('qrContainer').classList.add('hidden');
+        // Hide the cart when viewing history
+        document.getElementById('cartContainer').classList.add('hidden');
+        // If we switched to history programmatically (or on initial load), fetch orders
+        // if we haven't already loaded them.
+        if (historyOrders.length === 0) {
+          // Use a microtask to avoid potential synchronous DOM timing issues
+          setTimeout(() => {
+            loadHistory();
+          }, 0);
+        }
+      } else {
+        // Show the cart for raffles and concessions
+        document.getElementById('cartContainer').classList.remove('hidden');
       }
     }
+
 
     document.getElementById('rafflesTab').addEventListener('click', () => setActiveTab('raffles'));
     document.getElementById('concessionsTab').addEventListener('click', () => setActiveTab('concessions'));
@@ -150,9 +254,21 @@
       setActiveTab('history');
       if (historyOrders.length === 0) loadHistory();
     });
+    document.getElementById('adminTab').addEventListener('click', () => {
+      setActiveTab('admin');
+      // Show admin section but hide cart
+      document.getElementById('adminSection').classList.remove('hidden');
+      document.getElementById('historySection').classList.add('hidden');
+      document.getElementById('rafflesSection').classList.add('hidden');
+      document.getElementById('concessionsSection').classList.add('hidden');
+      document.getElementById('cartContainer').classList.add('hidden');
+    });
 
-    // Initialize
-    setActiveTab(localStorage.getItem('activeTab') || 'concessions');
+  // Initialize: default to 'concessions'. If localStorage has 'history', ignore it
+  // so we only switch to history when the user explicitly clicks the History tab.
+  const storedTab = localStorage.getItem('activeTab');
+  const initialTab = storedTab === 'history' ? 'concessions' : (storedTab || 'concessions');
+  setActiveTab(initialTab);
 
     // -----------------------------
     // Payment Toggle Control
@@ -182,24 +298,23 @@
     
     selectPaymentOption(paymentTypeInput.value);
 
-/********************************************************
+    /********************************************************
      * 🗂️ Data-driven menu configuration
+     *
+     * Items are now stored server-side; we keep a DEFAULT_ITEMS list as a
+     * fallback while the client fetches `/api/items` on load.
      ********************************************************/
-    const items = [
-      // --- RAFFLES ---
+    const DEFAULT_ITEMS = [
       { tab: "raffles", category: "Raffles 🎟️", name: "Single Ticket", dataName: "single_ticket", price: 1, color: "gray-600", order: 1 },
       { tab: "raffles", category: "Raffles 🎟️", name: "6 Pack Ticket", dataName: "6pack_ticket", price: 5, color: "gray-600", order: 2 },
       { tab: "raffles", category: "Raffles 🎟️", name: "14 Pack Ticket", dataName: "14pack_ticket", price: 10, color: "gray-600", order: 3 },
       { tab: "raffles", category: "Raffles 🎟️", name: "30 Pack Ticket", dataName: "30pack_ticket", price: 20, color: "gray-600", order: 4 },
 
-      // --- CONCESSIONS ---
-      // Food
       { tab: "concessions", category: "Snacks", name: "Pizza Slice 🍕", dataName: "pizza", price: 3, color: "gray-600", order: 1 },
       { tab: "concessions", category: "Snacks", name: "Donuts 🍩", dataName: "donuts", price: 2, color: "gray-600", order: 2 },
       { tab: "concessions", category: "Snacks", name: "Muffins 🧁", dataName: "muffins", price: 3, color: "gray-600", order: 3 },
       { tab: "concessions", category: "Snacks", name: "Chips 🍟", dataName: "chips", price: 2, color: "gray-600", order: 4 },
 
-      // Candy
       { tab: "concessions", category: "Candy", name: "Candy Bar 🍫", dataName: "candy_bar", price: 3, color: "gray-600", order: 1 },
       { tab: "concessions", category: "Candy", name: "Nerds", dataName: "nerds", price: 2, color: "gray-600", order: 2 },
       { tab: "concessions", category: "Candy", name: "Ring Pop 💍", dataName: "ring_pop", price: 2, color: "gray-600", order: 3 },
@@ -208,12 +323,84 @@
       { tab: "concessions", category: "Candy", name: "Air Head Extremes 🌈", dataName: "air_heads", price: 2, color: "gray-600", order: 6 },
       { tab: "concessions", category: "Candy", name: "Other", dataName: "candy_other", price: 2, color: "gray-600", order: 7 },
 
-      // Drinks
       { tab: "concessions", category: "Drinks 🥤", name: "Gatorade", dataName: "gatorade", price: 3, color: "gray-600", order: 1 },
       { tab: "concessions", category: "Drinks 🥤", name: "Water 💧", dataName: "water", price: 2, color: "gray-600", order: 2 },
       { tab: "concessions", category: "Drinks 🥤", name: "Coffee ☕", dataName: "coffee", price: 3, color: "gray-600", order: 3 },
       { tab: "concessions", category: "Drinks 🥤", name: "Other Drink", dataName: "drink_other", price: 2, color: "gray-600", order: 4 },
     ];
+
+    // Current items used by the UI
+    let items = DEFAULT_ITEMS.slice();
+
+    async function loadItems() {
+      try {
+        const res = await fetch('/api/items');
+        if (!res.ok) throw new Error('Network response not ok');
+        const data = await res.json();
+        // Map server rows to client shape
+        items = data.map(i => ({
+          tab: i.tab,
+          category: i.category,
+          name: i.name,
+          dataName: i.dataName || i.name,
+          price: Number(i.price || 0),
+          color: i.color || 'gray-600',
+          order: i.orderIndex || 0,
+          id: i.id
+        }));
+        // build global friendly name map for history rendering: dataName -> display name
+        window.__itemNameMap = {};
+        items.forEach(it => {
+          if (it.dataName) window.__itemNameMap[it.dataName] = it.name;
+        });
+        renderMenu();
+        // Wire up event handlers for dynamically created quantity controls
+        wireQuantityControls();
+      } catch (err) {
+        console.error('Failed to load items from server, using defaults:', err);
+        items = DEFAULT_ITEMS.slice();
+        // also build map from defaults
+        window.__itemNameMap = {};
+        items.forEach(it => { if (it.dataName) window.__itemNameMap[it.dataName] = it.name; });
+        renderMenu();
+        // Wire up after fallback render as well
+        wireQuantityControls();
+      }
+    }
+
+    // Attach event listeners to quantity controls (run after renderMenu)
+    function wireQuantityControls() {
+      // Ensure global click handler (to collapse active controls) remains
+      // Attach per-control handlers for add button behavior
+      document.querySelectorAll('.quantity-control').forEach(control => {
+        // initialize display mode for this control
+        showDisplayMode(control);
+
+        // wire the add button if present (rendered in display mode)
+        const addBtn = control.querySelector('.add-btn');
+        if (addBtn) {
+          // remove existing handler to avoid double-binding
+          addBtn.replaceWith(addBtn.cloneNode(true));
+        }
+      });
+
+      // Now re-query and attach click handlers to the actual button nodes
+      document.querySelectorAll('.quantity-control').forEach(control => {
+        const addBtn = control.querySelector('.add-btn');
+        if (addBtn) {
+          addBtn.addEventListener('click', () => {
+            const name = control.dataset.name;
+            const price = parseFloat(control.dataset.price);
+            cart[name] = cart[name]
+              ? { ...cart[name], qty: cart[name].qty + 1 }
+              : { price, qty: 1 };
+            updateCartUI();
+            showActiveControl(control);
+            justActivated = true;
+          });
+        }
+      });
+    }
 
     /********************************************************
      * 🧩 Helper: Render category grids dynamically
@@ -245,7 +432,7 @@
           html += `
             <div class="mb-3">
               <h3 class="text-lg font-semibold mb-1 text-lime-400">${category}</h3>
-              <div class="grid grid-cols-2 gap-2">
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
                 ${grouped[tabName][category].map(item => `
                   <div class="bg-gray-800 rounded p-2 flex flex-col justify-between">
                     <div class="flex justify-between items-center mb-1">
@@ -273,7 +460,8 @@
       renderSection("concessions", concessionContainer);
     }
 
-    renderMenu();    
+  // Load items from server (falls back to DEFAULT_ITEMS)
+  loadItems();
 
     /********************************************************
      * 🟦 Tab switching behavior
@@ -310,21 +498,7 @@ document.addEventListener('click', (e) => {
   });
 });
 
-document.querySelectorAll('.quantity-control').forEach(control => {
-  const addBtn = control.querySelector('.add-btn');
-  if (addBtn) {
-    addBtn.addEventListener('click', () => {
-      const name = control.dataset.name;
-      const price = parseFloat(control.dataset.price);
-      cart[name] = cart[name]
-        ? { ...cart[name], qty: cart[name].qty + 1 }
-        : { price, qty: 1 };
-      updateCartUI();
-      showActiveControl(control);
-      justActivated = true;
-    });
-  }
-});
+// quantity control wiring is handled by wireQuantityControls() after render
 
 function showActiveControl(control) {
   const name = control.dataset.name;
@@ -577,7 +751,21 @@ function updateCartUI() {
       document.querySelectorAll('.quantity-control').forEach(showDisplayMode);
       
       // Reset payment to Cash (default)
-      selectPaymentOption('Cash'); 
+      if (typeof selectPaymentOption === 'function') {
+        selectPaymentOption('Cash');
+      } else {
+        // graceful fallback if function is not present for any reason
+        paymentTypeInput.value = 'Cash';
+        paymentOptions.forEach(button => {
+          if (button.dataset.value === 'Cash') {
+            button.classList.add('bg-blue-600', 'text-white', 'font-semibold');
+            button.classList.remove('text-gray-300');
+          } else {
+            button.classList.remove('bg-blue-600', 'text-white', 'font-semibold');
+            button.classList.add('text-gray-300');
+          }
+        });
+      }
 
       // Restore active tab sections
       const activeTab = localStorage.getItem('activeTab') || 'concessions';
@@ -599,9 +787,28 @@ function updateCartUI() {
           renderHistory();
         })
         .catch((err) => {
-          console.error('Failed to load order history:', err);
-          alert('Error loading order history. Please try again.');
-        });
+              console.error('Failed to load order history:', err);
+              // Show an inline error message with a retry button instead of an alert
+              const errElId = 'historyErrorMsg';
+              let errEl = document.getElementById(errElId);
+              if (!errEl) {
+                errEl = document.createElement('div');
+                errEl.id = errElId;
+                errEl.className = 'text-red-400 text-sm mb-2 flex items-center justify-between';
+                const list = document.getElementById('historyList');
+                // insert the error message above the history list
+                document.getElementById('historySection').insertBefore(errEl, list);
+              }
+              const message = err && err.message ? err.message : String(err);
+              errEl.innerHTML = `Error loading order history: ${message} <button id=\"retryHistoryBtn\" class=\"ml-2 bg-blue-600 px-2 py-1 rounded text-white text-xs\">Retry</button>`;
+              const retryBtn = document.getElementById('retryHistoryBtn');
+              if (retryBtn) {
+                retryBtn.addEventListener('click', () => {
+                  errEl.remove();
+                  loadHistory();
+                });
+              }
+            });
     }
 
 
@@ -612,22 +819,428 @@ function updateCartUI() {
 
       historyOrders.forEach(order => {
         const li = document.createElement('li');
-        li.className = 'flex justify-between items-center py-1 border-b border-gray-700 last:border-b-0';
-        li.textContent = `${new Date(order.timestamp).toLocaleString()} - $${order.totalAmount.toFixed(2)} (${order.paymentType}) #${order.orderId.substring(0,6)}`;
+        li.className = 'py-2 border-b border-gray-700 last:border-b-0';
+
+        // Top row: timestamp + order id and total
+        const topRow = document.createElement('div');
+        topRow.className = 'flex justify-between items-center';
+
+        const left = document.createElement('div');
+        const when = document.createElement('div');
+        when.className = 'text-sm text-gray-300';
+        when.textContent = new Date(order.timestamp).toLocaleString();
+        const meta = document.createElement('div');
+        meta.className = 'text-xs text-gray-400';
+        meta.textContent = `#${String(order.orderId).substring(0,6)} • ${order.paymentType} • ${order.status || ''}`;
+        left.appendChild(when);
+        left.appendChild(meta);
+
+        const right = document.createElement('div');
+        right.className = 'text-right';
+        const totalNum = Number(order.totalAmount);
+        const totalStr = Number.isFinite(totalNum) ? totalNum.toFixed(2) : (order.totalAmount || '0.00');
+        const totalEl = document.createElement('div');
+        totalEl.className = 'font-semibold';
+        totalEl.textContent = `$${totalStr}`;
+
+        // Container to hold total and optional actions (like Show QR for Venmo)
+        const controlWrap = document.createElement('div');
+        controlWrap.className = 'flex items-center justify-end space-x-2';
+        controlWrap.appendChild(totalEl);
+
+        if (order.paymentType === 'Venmo') {
+          const qrButton = document.createElement('button');
+          qrButton.textContent = 'Show QR';
+          qrButton.className = 'bg-yellow-600 hover:bg-yellow-500 text-white text-xs px-2 py-1 rounded ml-2';
+          qrButton.onclick = () => showVenmoQR(order);
+          controlWrap.appendChild(qrButton);
+        }
+
+        right.appendChild(controlWrap);
+
+        topRow.appendChild(left);
+        topRow.appendChild(right);
+        li.appendChild(topRow);
+
+        // Toggle button to show/hide transactions
+        const toggleWrapper = document.createElement('div');
+        toggleWrapper.className = 'mt-1';
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'text-xs text-blue-400 hover:underline';
+        toggleBtn.textContent = 'Show items';
+        toggleWrapper.appendChild(toggleBtn);
+        li.appendChild(toggleWrapper);
+
+        // Transactions list (hidden by default)
+        const itemsUl = document.createElement('ul');
+        itemsUl.className = 'mt-2 ml-3 text-sm text-gray-400';
+        itemsUl.style.display = 'none';
+
+        if (Array.isArray(order.items) && order.items.length) {
+          order.items.forEach(item => {
+            const itemLi = document.createElement('li');
+            const itemTotalNum = Number(item.total);
+            const itemTotalStr = Number.isFinite(itemTotalNum) ? itemTotalNum.toFixed(2) : (item.total || '0.00');
+            // Map dataName to friendly name if available
+            const friendly = (window.__itemNameMap && window.__itemNameMap[item.name]) || item.name;
+            itemLi.textContent = `${friendly} x ${item.qty} — $${itemTotalStr}`;
+            itemsUl.appendChild(itemLi);
+          });
+        } else {
+          const none = document.createElement('li');
+          none.className = 'text-xs text-gray-500';
+          none.textContent = 'No items recorded';
+          itemsUl.appendChild(none);
+        }
+
+        toggleBtn.addEventListener('click', () => {
+          const isHidden = itemsUl.style.display === 'none' || itemsUl.style.display === '';
+          itemsUl.style.display = isHidden ? 'block' : 'none';
+          toggleBtn.textContent = isHidden ? 'Hide items' : 'Show items';
+        });
+
+        li.appendChild(itemsUl);
         list.appendChild(li);
       });
 
       // Update summary
-      const totalAmount = historyOrders.reduce((sum,o) => sum + o.totalAmount,0);
+      const totalAmount = historyOrders.reduce((sum,o) => sum + Number(o.totalAmount || 0),0);
       document.getElementById('historyTotalOrders').textContent = `Orders: ${historyOrders.length}`;
       document.getElementById('historyTotalAmount').textContent = `Total: $${totalAmount.toFixed(2)}`;
     }
+
+    // -----------------------------
+    // Admin client
+    // -----------------------------
+  let adminToken = null; // no client-side token; server sets httpOnly cookie
+    let adm_editId = null;
+    let adminItemsCache = [];
+
+    function showAdminLoginError(msg) {
+      const el = document.getElementById('adminLoginMsg');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    function clearAdminLoginError() {
+      const el = document.getElementById('adminLoginMsg');
+      el.textContent = '';
+      el.classList.add('hidden');
+    }
+
+    async function loadAdminItems() {
+      try {
+        const res = await fetch('/api/items');
+        if (!res.ok) throw new Error('Failed to fetch items');
+        const data = await res.json();
+        // cache items for delegated handlers and local lookup
+        adminItemsCache = data.slice();
+
+        const tbody = document.getElementById('adminTableBody');
+        const mobileList = document.getElementById('adminListMobile');
+        tbody.innerHTML = '';
+        mobileList.innerHTML = '';
+
+        // keep items order local copy
+        const visible = data.slice().sort((a,b) => (a.orderIndex||0) - (b.orderIndex||0));
+
+        visible.forEach(i => {
+          // desktop row
+          const tr = document.createElement('tr');
+          tr.className = 'border-b border-gray-700';
+          tr.innerHTML = `
+            <td class="px-2 py-1">${i.id}</td>
+            <td class="px-2 py-1">${i.tab}</td>
+            <td class="px-2 py-1">${i.category}</td>
+            <td class="px-2 py-1">${i.name}</td>
+            <td class="px-2 py-1">${i.dataName || ''}</td>
+            <td class="px-2 py-1">$${Number(i.price).toFixed(2)}</td>
+            <td class="px-2 py-1">${i.orderIndex || 0}</td>
+            <td class="px-2 py-1 space-x-1">
+              <button data-id="${i.id}" class="admin-edit bg-blue-600 px-2 py-1 text-xs rounded">Edit</button>
+              <button data-id="${i.id}" class="admin-delete bg-red-600 px-2 py-1 text-xs rounded">Delete</button>
+              <button data-id="${i.id}" class="admin-up bg-gray-600 px-2 py-1 text-xs rounded">↑</button>
+              <button data-id="${i.id}" class="admin-down bg-gray-600 px-2 py-1 text-xs rounded">↓</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+
+          // mobile card
+          const card = document.createElement('div');
+          card.className = 'bg-gray-800 p-3 rounded';
+          card.innerHTML = `
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="text-sm font-semibold">${i.name}</div>
+                <div class="text-xs text-gray-400">${i.category} • ${i.tab}</div>
+                <div class="text-xs text-gray-300">Data: ${i.dataName || ''}</div>
+              </div>
+              <div class="text-right">
+                <div class="font-semibold">$${Number(i.price).toFixed(2)}</div>
+                <div class="text-xs text-gray-400">Order: ${i.orderIndex || 0}</div>
+              </div>
+            </div>
+            <div class="mt-2 flex space-x-2">
+              <button data-id="${i.id}" class="admin-edit bg-blue-600 px-3 py-1 text-xs rounded">Edit</button>
+              <button data-id="${i.id}" class="admin-delete bg-red-600 px-3 py-1 text-xs rounded">Delete</button>
+              <button data-id="${i.id}" class="admin-up bg-gray-600 px-2 py-1 text-xs rounded">↑</button>
+              <button data-id="${i.id}" class="admin-down bg-gray-600 px-2 py-1 text-xs rounded">↓</button>
+            </div>
+          `;
+          mobileList.appendChild(card);
+        });
+
+  // Use delegated handler on adminPanel to handle clicks from both desktop and mobile elements
+        const adminPanelEl = document.getElementById('adminPanel');
+        if (adminPanelEl && !adminPanelEl.dataset.delegationBound) {
+          let pendingDeleteId = null;
+          let pendingDeleteName = null;
+          adminPanelEl.addEventListener('click', async (evt) => {
+            const btn = evt.target.closest('button');
+            if (!btn || !adminPanelEl.contains(btn)) return;
+            const id = btn.dataset.id;
+            if (!id) return;
+
+            try {
+              if (btn.classList.contains('admin-edit')) {
+                const row = adminItemsCache.find(x => String(x.id) === String(id));
+                if (!row) return;
+                openAdminModal(row);
+              } else if (btn.classList.contains('admin-delete')) {
+                // show modal confirmation instead of confirm(); include item name and require checkbox
+                const row = adminItemsCache.find(x => String(x.id) === String(id));
+                pendingDeleteId = id;
+                pendingDeleteName = row ? row.name : '';
+                document.getElementById('deleteConfirmMsg').textContent = 'Delete item #' + id + '?';
+                document.getElementById('deleteConfirmName').textContent = pendingDeleteName ? pendingDeleteName : '';
+                document.getElementById('deleteConfirmCheck').checked = false;
+                document.getElementById('confirmDeleteBtn').disabled = true;
+                document.getElementById('deleteConfirmModal').classList.remove('hidden');
+              } else if (btn.classList.contains('admin-up')) {
+                await moveItem(Number(id), -1, adminItemsCache);
+                await loadItems();
+                await loadAdminItems();
+              } else if (btn.classList.contains('admin-down')) {
+                await moveItem(Number(id), +1, adminItemsCache);
+                await loadItems();
+                await loadAdminItems();
+              }
+            } catch (err) {
+              console.error('Admin action failed:', err);
+              alert('Action failed: ' + (err.message || err));
+            }
+          });
+
+          // modal controls
+          document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
+            pendingDeleteId = null;
+            pendingDeleteName = null;
+            document.getElementById('deleteConfirmModal').classList.add('hidden');
+          });
+          document.getElementById('deleteConfirmCheck').addEventListener('change', (e) => {
+            document.getElementById('confirmDeleteBtn').disabled = !e.target.checked;
+          });
+          document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+            if (!pendingDeleteId) return;
+            try {
+              const resp = await fetch('/api/admin/items/' + pendingDeleteId, { method: 'DELETE' });
+              if (!resp.ok) {
+                const ebody = await resp.json().catch(()=>({}));
+                showToast('Delete failed: ' + (ebody.error || 'unknown'), 'error');
+              } else {
+                showToast('Item deleted', 'success');
+              }
+            } catch (err) {
+              console.error('Delete request failed:', err);
+              showToast('Delete failed: ' + err.message, 'error');
+            }
+            pendingDeleteId = null;
+            pendingDeleteName = null;
+            document.getElementById('deleteConfirmModal').classList.add('hidden');
+            await loadItems();
+            await loadAdminItems();
+          });
+
+          adminPanelEl.dataset.delegationBound = '1';
+        }
+      } catch (err) {
+        console.error('Failed to load admin items:', err);
+      }
+    }
+
+    // move item by delta in orderIndex among items array
+    async function moveItem(id, delta, allItems) {
+      const sorted = allItems.slice().sort((a,b) => (a.orderIndex||0)-(b.orderIndex||0));
+      const idx = sorted.findIndex(x => Number(x.id) === Number(id));
+      if (idx === -1) return;
+      const swapWith = idx + delta;
+      if (swapWith < 0 || swapWith >= sorted.length) return;
+      const a = sorted[idx];
+      const b = sorted[swapWith];
+      // swap orderIndex values
+      const aOrder = a.orderIndex || 0;
+      const bOrder = b.orderIndex || 0;
+      // update both via API
+      const pa = fetch('/api/admin/items/' + a.id, { method: 'PUT', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ ...a, orderIndex: bOrder }) });
+      const pb = fetch('/api/admin/items/' + b.id, { method: 'PUT', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ ...b, orderIndex: aOrder }) });
+      const [ra, rb] = await Promise.all([pa, pb]);
+      if (!ra.ok || !rb.ok) {
+        const e1 = await ra.json().catch(()=>({}));
+        const e2 = await rb.json().catch(()=>({}));
+        throw new Error('Reorder failed: ' + (e1.error||'') + ' ' + (e2.error||''));
+      }
+    }
+
+    document.getElementById('adminLoginBtn').addEventListener('click', async () => {
+      clearAdminLoginError();
+      const pw = document.getElementById('adminPassword').value;
+      try {
+        const res = await fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          showAdminLoginError(err.error || 'Login failed');
+          return;
+        }
+        // server set httpOnly cookie; we don't receive token client-side
+        document.getElementById('adminLogin').classList.add('hidden');
+        document.getElementById('adminPanel').classList.remove('hidden');
+        await loadItems();
+        await loadAdminItems();
+      } catch (err) {
+        showAdminLoginError(err.message || 'Login failed');
+      }
+    });
+
+    // Admin Add button opens modal in create mode
+    document.getElementById('adminAddBtn').addEventListener('click', () => openAdminModal());
+
+    // Admin search: filter both desktop table rows and mobile cards
+    const adminSearchEl = document.getElementById('adminSearch');
+    if (adminSearchEl) {
+      adminSearchEl.addEventListener('input', () => {
+        const term = (adminSearchEl.value || '').toLowerCase().trim();
+        // filter desktop table rows
+        document.querySelectorAll('#adminTableBody tr').forEach(tr => {
+          const match = tr.textContent.toLowerCase().includes(term);
+          tr.style.display = match ? '' : 'none';
+        });
+        // filter mobile cards
+        document.querySelectorAll('#adminListMobile > div').forEach(card => {
+          const match = card.textContent.toLowerCase().includes(term);
+          card.style.display = match ? '' : 'none';
+        });
+        updateAdminNoResults();
+      });
+    }
+
+    function openAdminModal(item) {
+      adm_editId = item ? item.id : null;
+      document.getElementById('adminModalTitle').textContent = adm_editId ? 'Edit Item' : 'Add Item';
+      document.getElementById('modal_tab').value = item ? item.tab : '';
+      document.getElementById('modal_category').value = item ? item.category : '';
+      document.getElementById('modal_name').value = item ? item.name : '';
+      document.getElementById('modal_dataName').value = item ? (item.dataName||'') : '';
+      document.getElementById('modal_price').value = item ? item.price : '';
+      document.getElementById('modal_orderIndex').value = item ? (item.orderIndex||0) : '0';
+      document.getElementById('adminModal').classList.remove('hidden');
+    }
+
+    document.getElementById('adminModalCancel').addEventListener('click', () => {
+      document.getElementById('adminModal').classList.add('hidden');
+      adm_editId = null;
+    });
+
+    document.getElementById('adminModalSave').addEventListener('click', async () => {
+      const payload = {
+        tab: document.getElementById('modal_tab').value,
+        category: document.getElementById('modal_category').value,
+        name: document.getElementById('modal_name').value,
+        dataName: document.getElementById('modal_dataName').value,
+        price: Number(document.getElementById('modal_price').value || 0),
+        orderIndex: Number(document.getElementById('modal_orderIndex').value || 0),
+      };
+      try {
+        let resp;
+        if (adm_editId) {
+          resp = await fetch('/api/admin/items/' + adm_editId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        } else {
+          resp = await fetch('/api/admin/items', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        }
+        if (!resp.ok) {
+          const e = await resp.json().catch(()=>({}));
+          showToast('Save failed: ' + (e.error || 'unknown'), 'error');
+          return;
+        }
+        document.getElementById('adminModal').classList.add('hidden');
+        adm_editId = null;
+        await loadItems();
+        await loadAdminItems();
+      } catch (err) {
+        showToast('Save failed: ' + err.message, 'error');
+      }
+    });
+
+    document.getElementById('adminLogoutBtn').addEventListener('click', async () => {
+      try {
+        const res = await fetch('/api/admin/logout', { method: 'POST' });
+        if (!res.ok) throw new Error('Logout failed');
+      } catch (err) {
+        console.error('Logout error:', err);
+      }
+      document.getElementById('adminPanel').classList.add('hidden');
+      document.getElementById('adminLogin').classList.remove('hidden');
+    });
+
+    
+
+    // If server cookie already present, try to show admin panel by probing /api/items
+    async function checkAdminSession() {
+      try {
+        // call a protected endpoint (create a quick noop) or just call items and see if 401
+        const res = await fetch('/api/items');
+        // items is public; instead probe admin action by hitting admin/items with OPTIONS or similar isn't allowed,
+        // so we'll rely on the user to login in for now.
+      } catch (err) {
+        // ignore
+      }
+    }
+    checkAdminSession();
 
     document.getElementById('newOrderBtn').addEventListener('click', startNewOrder);
     document.getElementById('startOverBtn').addEventListener('click', startNewOrder);
     
     // Initialize all quantity controls on page load 
     document.querySelectorAll('.quantity-control').forEach(showDisplayMode);
+
+    // -----------------------------
+    // Toasts and small helpers
+    // -----------------------------
+    function showToast(message, type = 'info', timeout = 3500) {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+      const id = 'toast-' + Date.now();
+      const color = type === 'error' ? 'bg-red-600' : (type === 'success' ? 'bg-green-600' : 'bg-gray-800');
+      const el = document.createElement('div');
+      el.id = id;
+      el.className = `${color} text-white px-4 py-2 rounded shadow mb-2 max-w-lg`;
+      el.textContent = message;
+      container.appendChild(el);
+      setTimeout(() => {
+        el.remove();
+      }, timeout);
+    }
+
+    function updateAdminNoResults() {
+      const visibleTableRows = Array.from(document.querySelectorAll('#adminTableBody tr')).filter(r => r.style.display !== 'none');
+      const visibleCards = Array.from(document.querySelectorAll('#adminListMobile > div')).filter(c => c.style.display !== 'none');
+      const noResultsEl = document.getElementById('adminNoResults');
+      if (!noResultsEl) return;
+      if (visibleTableRows.length === 0 && visibleCards.length === 0) {
+        noResultsEl.classList.remove('hidden');
+      } else {
+        noResultsEl.classList.add('hidden');
+      }
+    }
 
   </script>
 </body>
